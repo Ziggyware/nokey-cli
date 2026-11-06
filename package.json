@@ -1,0 +1,45 @@
+{
+  "name": "nokey-cli",
+  "version": "1.0.0",
+  "description": "Stateful, color-coded terminal chat for nokey-router — streaming, syntax-highlighted, with a memory engine and session DAG.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "bin": {
+    "nokey": "./bin/nokey.js"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node --no-warnings --experimental-strip-types src/cli.ts",
+    "dev": "node --no-warnings --experimental-strip-types src/cli.ts",
+    "test": "node --no-warnings --experimental-strip-types --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "mock": "node --no-warnings --experimental-strip-types test/mock-router.ts"
+  },
+  "keywords": [
+    "ai",
+    "chat",
+    "tui",
+    "terminal",
+    "llm",
+    "nokey",
+    "router",
+    "syntax-highlighting",
+    "memory"
+  ],
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^22.10.0"
+  }
+}
