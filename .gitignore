@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.kono/
+*.log
+.DS_Store
+coverage/
+test/tmp/

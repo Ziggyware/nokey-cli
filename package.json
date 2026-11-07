@@ -1,0 +1,52 @@
+{
+  "name": "kono-cli",
+  "version": "1.0.0",
+  "description": "A stateful, colour-coded terminal chat for nokey-router",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "bin": {
+    "kono": "./bin/kono.js"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node --no-warnings --experimental-strip-types src/cli.ts",
+    "dev": "node --no-warnings --experimental-strip-types src/cli.ts",
+    "test": "node --no-warnings --experimental-strip-types --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "mock": "node --no-warnings --experimental-strip-types test/mock-router.ts",
+    "build:valtown": "node --no-warnings --experimental-strip-types scripts/build-valtown.ts",
+    "check:gateway": "node --no-warnings --experimental-strip-types scripts/check-gateway.ts"
+  },
+  "keywords": [
+    "ai",
+    "chat",
+    "tui",
+    "terminal",
+    "llm",
+    "kono",
+    "router",
+    "syntax-highlighting",
+    "memory"
+  ],
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^22.10.0"
+  },
+  "homepage": "https://kono.val.run",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ziggyware/nokey-cli.git"
+  }
+}
