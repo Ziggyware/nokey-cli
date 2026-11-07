@@ -29,7 +29,7 @@ export function renderHeader(state: HeaderState): Cell[] {
   const push = (text: string, style: Style | null) => out.push(...toCells([{ t: text, s: style }]));
 
   push("◈ ", st(theme, "accent", { bold: true }));
-  push("nokey", st(theme, "accent", { bold: true }));
+  push("kono", st(theme, "accent", { bold: true }));
   push(" ", null);
   push(truncateTitle(state.title, Math.max(12, Math.min(46, width - 52))), st(theme, "fg", { bold: true }));
 

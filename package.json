@@ -1,14 +1,14 @@
 {
-  "name": "nokey-cli",
+  "name": "kono-cli",
   "version": "1.0.0",
-  "description": "Stateful, color-coded terminal chat for nokey-router \u2014 streaming, syntax-highlighted, with a memory engine and session DAG.",
+  "description": "A stateful, colour-coded terminal chat for nokey-router",
   "type": "module",
   "license": "MIT",
   "engines": {
     "node": ">=22.6.0"
   },
   "bin": {
-    "nokey": "./bin/nokey.js"
+    "kono": "./bin/kono.js"
   },
   "exports": {
     ".": "./src/index.ts"
@@ -35,7 +35,7 @@
     "tui",
     "terminal",
     "llm",
-    "nokey",
+    "kono",
     "router",
     "syntax-highlighting",
     "memory"
@@ -43,5 +43,10 @@
   "devDependencies": {
     "typescript": "^5.9.3",
     "@types/node": "^22.10.0"
+  },
+  "homepage": "https://kono.val.run",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ziggyware/nokey-cli.git"
   }
 }

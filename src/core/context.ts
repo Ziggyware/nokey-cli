@@ -83,7 +83,7 @@ export function readProjectInstructions(cwd = process.cwd(), maxChars = MAX_PROJ
 
 export function defaultPersona(): string {
   return [
-    "You are a precise, friendly engineering assistant running inside nokey-cli, a terminal chat client for the nokey-router.",
+    "You are a precise, friendly engineering assistant running inside kono-cli, a terminal chat client for the nokey-router.",
     "Format answers for a terminal: short paragraphs, fenced code blocks with a language tag, tables when comparing.",
     "Prefer concrete, runnable answers over prose. Never invent APIs or files that do not exist.",
   ].join("\n");

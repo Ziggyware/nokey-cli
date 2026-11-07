@@ -56,26 +56,26 @@ export interface GatewayEnv {
   /** Router key used when the caller does not send one. */
   ROUTER_API_KEY?: string;
   /** Router origin; defaults to the public deployment. */
-  NOKEY_BASE_URL?: string;
+  KONO_BASE_URL?: string;
   /** `*` by default; set an origin to lock the gateway down. */
-  NOKEY_ALLOW_ORIGIN?: string;
+  KONO_ALLOW_ORIGIN?: string;
   /** Comma-separated extra path prefixes to expose. */
-  NOKEY_ALLOW?: string;
+  KONO_ALLOW?: string;
   /** `1` exposes the admin surface (caller must still supply x-admin-secret). */
-  NOKEY_ALLOW_ADMIN?: string;
+  KONO_ALLOW_ADMIN?: string;
   /** `1` ignores caller credentials and always signs with ROUTER_API_KEY. */
-  NOKEY_FORCE_KEY?: string;
+  KONO_FORCE_KEY?: string;
   /**
    * `1` refuses callers who send no `authorization` header, so a public URL
    * never spends the deployment's key on strangers.
    */
-  NOKEY_REQUIRE_CLIENT_KEY?: string;
+  KONO_REQUIRE_CLIENT_KEY?: string;
   /** `1` strips the client's x-admin-secret header (default when admin is off). */
-  NOKEY_ALLOW_ADMIN_SECRET?: string;
+  KONO_ALLOW_ADMIN_SECRET?: string;
   /** Set to `0` to disable the HTML landing page. */
-  NOKEY_LANDING?: string;
+  KONO_LANDING?: string;
   /** Tag shown in responses and on the landing page. */
-  NOKEY_GATEWAY_NAME?: string;
+  KONO_GATEWAY_NAME?: string;
 }
 
 export interface GatewayOptions {
@@ -86,8 +86,8 @@ export interface GatewayOptions {
   fetchImpl?: typeof fetch;
   maxBodyBytes?: number;
   /**
-   * Admin secret the deployment holds. Only used when NOKEY_ALLOW_ADMIN=1 and
-   * the operator did not set NOKEY_ALLOW_ADMIN_SECRET (i.e. the local proxy).
+   * Admin secret the deployment holds. Only used when KONO_ALLOW_ADMIN=1 and
+   * the operator did not set KONO_ALLOW_ADMIN_SECRET (i.e. the local proxy).
    */
   adminSecret?: string;
 }
@@ -102,14 +102,14 @@ export interface GatewayResult {
 const MAX_BODY = 2_000_000;
 
 export function corsHeaders(env: GatewayEnv): Record<string, string> {
-  const origin = env.NOKEY_ALLOW_ORIGIN?.trim() || "*";
+  const origin = env.KONO_ALLOW_ORIGIN?.trim() || "*";
   return {
     "access-control-allow-origin": origin,
     "access-control-allow-methods": "GET, POST, OPTIONS",
     "access-control-allow-headers":
-      "authorization, content-type, x-admin-secret, traceparent, accept, x-nokey-room",
+      "authorization, content-type, x-admin-secret, traceparent, accept, x-kono-room",
     "access-control-expose-headers":
-      "x-nokey-attempts, x-nokey-endpoints, x-nokey-degraded, x-nokey-gateway, traceparent, server-timing",
+      "x-nokey-attempts, x-nokey-endpoints, x-nokey-degraded, x-kono-gateway, traceparent, server-timing",
     "access-control-max-age": "86400",
     vary: "origin",
   };
@@ -121,11 +121,11 @@ function matches(pathname: string, allowed: readonly string[]): boolean {
 
 /** Decide whether a path may be forwarded. */
 export function routeOf(pathname: string, env: GatewayEnv): "proxy" | "denied" | "not_found" {
-  const extra = (env.NOKEY_ALLOW ?? "")
+  const extra = (env.KONO_ALLOW ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const adminOn = env.NOKEY_ALLOW_ADMIN === "1";
+  const adminOn = env.KONO_ALLOW_ADMIN === "1";
   const isAdmin = matches(pathname, ADMIN_PATHS);
   if (isAdmin) {
     if (!adminOn) return "denied";
@@ -165,7 +165,7 @@ export async function handleGatewayDetailed(
     };
   }
   if (pathname === "/" || pathname === "/index.html") {
-    if (env.NOKEY_LANDING === "0") return { route: "not_found", response: json(404, { error: { code: "landing_disabled" } }, cors) };
+    if (env.KONO_LANDING === "0") return { route: "not_found", response: json(404, { error: { code: "landing_disabled" } }, cors) };
     return {
       route: "landing",
       response: new Response(landingPage(env, options.version ?? GATEWAY_VERSION, url.origin), {
@@ -174,21 +174,21 @@ export async function handleGatewayDetailed(
       }),
     };
   }
-  if (pathname === "/healthz" || pathname === "/nokey/healthz") {
+  if (pathname === "/healthz" || pathname === "/kono/healthz") {
     return {
       route: "healthz",
       response: json(
         200,
         {
           ok: true,
-          gateway: env.NOKEY_GATEWAY_NAME ?? "nokey-gateway",
+          gateway: env.KONO_GATEWAY_NAME ?? "kono-gateway",
           version: options.version ?? GATEWAY_VERSION,
-          upstream: (env.NOKEY_BASE_URL ?? DEFAULT_ROUTER).replace(/\/+$/, ""),
+          upstream: (env.KONO_BASE_URL ?? DEFAULT_ROUTER).replace(/\/+$/, ""),
           keyConfigured: Boolean(env.ROUTER_API_KEY),
-          requireClientKey: env.NOKEY_REQUIRE_CLIENT_KEY === "1",
+          requireClientKey: env.KONO_REQUIRE_CLIENT_KEY === "1",
           streaming: true,
           publicPaths: PUBLIC_PATHS,
-          adminExposed: env.NOKEY_ALLOW_ADMIN === "1",
+          adminExposed: env.KONO_ALLOW_ADMIN === "1",
         },
         cors,
       ),
@@ -205,9 +205,9 @@ export async function handleGatewayDetailed(
           error: {
             message: `${pathname} is an admin route; this gateway does not expose admin endpoints`,
             code: "admin_route_blocked",
-            hint: "run `nokey proxy` locally, or set NOKEY_ALLOW_ADMIN=1 and send x-admin-secret yourself",
+            hint: "run `kono proxy` locally, or set KONO_ALLOW_ADMIN=1 and send x-admin-secret yourself",
           },
-          nokey: { gateway: true },
+          kono: { gateway: true },
         },
         cors,
       ),
@@ -224,7 +224,7 @@ export async function handleGatewayDetailed(
             code: "not_found",
             proxied: PUBLIC_PATHS,
           },
-          nokey: { gateway: true },
+          kono: { gateway: true },
         },
         cors,
       ),
@@ -233,7 +233,7 @@ export async function handleGatewayDetailed(
 
   // A public deployment can insist that callers bring their own key, which
   // keeps the URL from becoming a free proxy for the operator's quota.
-  if (env.NOKEY_REQUIRE_CLIENT_KEY === "1" && !request.headers.get("authorization")) {
+  if (env.KONO_REQUIRE_CLIENT_KEY === "1" && !request.headers.get("authorization")) {
     return {
       route: "denied",
       response: json(
@@ -244,7 +244,7 @@ export async function handleGatewayDetailed(
             code: "client_key_required",
             hint: "send `authorization: Bearer <ROUTER_API_KEY>`",
           },
-          nokey: { gateway: true },
+          kono: { gateway: true },
         },
         cors,
       ),
@@ -260,10 +260,10 @@ export async function handleGatewayDetailed(
     };
   }
 
-  const upstreamBase = (env.NOKEY_BASE_URL ?? DEFAULT_ROUTER).replace(/\/+$/, "");
+  const upstreamBase = (env.KONO_BASE_URL ?? DEFAULT_ROUTER).replace(/\/+$/, "");
   const headers = new Headers();
   headers.set("accept", request.headers.get("accept") ?? "application/json");
-  headers.set("user-agent", `nokey-gateway/${options.version ?? GATEWAY_VERSION}`);
+  headers.set("user-agent", `kono-gateway/${options.version ?? GATEWAY_VERSION}`);
   const contentType = request.headers.get("content-type");
   if (contentType) headers.set("content-type", contentType);
   const traceparent = request.headers.get("traceparent");
@@ -271,15 +271,15 @@ export async function handleGatewayDetailed(
 
   // Credentials: the deployment's key by default, the caller's when they bring one.
   const callerKey = request.headers.get("authorization");
-  if (env.NOKEY_FORCE_KEY === "1" && env.ROUTER_API_KEY) headers.set("authorization", `Bearer ${env.ROUTER_API_KEY}`);
+  if (env.KONO_FORCE_KEY === "1" && env.ROUTER_API_KEY) headers.set("authorization", `Bearer ${env.ROUTER_API_KEY}`);
   else if (callerKey) headers.set("authorization", callerKey);
   else if (env.ROUTER_API_KEY) headers.set("authorization", `Bearer ${env.ROUTER_API_KEY}`);
 
   // Admin secrets are never injected on a public gateway; forward only if the
   // operator both enables admin routes and allows pass-through.
   const adminSecret = request.headers.get("x-admin-secret");
-  if (env.NOKEY_ALLOW_ADMIN === "1") {
-    if (adminSecret && env.NOKEY_ALLOW_ADMIN_SECRET === "1") headers.set("x-admin-secret", adminSecret);
+  if (env.KONO_ALLOW_ADMIN === "1") {
+    if (adminSecret && env.KONO_ALLOW_ADMIN_SECRET === "1") headers.set("x-admin-secret", adminSecret);
     else if (!adminSecret && options.adminSecret) headers.set("x-admin-secret", options.adminSecret);
   }
 
@@ -297,7 +297,7 @@ export async function handleGatewayDetailed(
       if ((HOP_BY_HOP as readonly string[]).includes(key.toLowerCase())) return;
       outHeaders.set(key, value);
     });
-    outHeaders.set("x-nokey-gateway", `nokey-gateway/${options.version ?? GATEWAY_VERSION}`);
+    outHeaders.set("x-kono-gateway", `kono-gateway/${options.version ?? GATEWAY_VERSION}`);
     if ((upstream.headers.get("content-type") ?? "").includes("text/event-stream")) {
       outHeaders.set("cache-control", "no-store");
       outHeaders.set("x-accel-buffering", "no");
@@ -319,7 +319,7 @@ export async function handleGatewayDetailed(
             code: "upstream_unreachable",
             upstream: upstreamBase,
           },
-          nokey: { gateway: true },
+          kono: { gateway: true },
         },
         cors,
       ),
@@ -333,8 +333,8 @@ export async function handleGateway(request: Request, options: GatewayOptions): 
 }
 
 export function landingPage(env: GatewayEnv, version: string, origin: string): string {
-  const upstream = (env.NOKEY_BASE_URL ?? DEFAULT_ROUTER).replace(/\/+$/, "");
-  const name = env.NOKEY_GATEWAY_NAME ?? "nokey-gateway";
+  const upstream = (env.KONO_BASE_URL ?? DEFAULT_ROUTER).replace(/\/+$/, "");
+  const name = env.KONO_GATEWAY_NAME ?? "kono-gateway";
   const keyNote = env.ROUTER_API_KEY
     ? "The server key is injected for callers that send no <code>authorization</code> header."
     : "No server key is configured — callers must send their own <code>authorization</code> header.";
@@ -356,7 +356,7 @@ export function landingPage(env: GatewayEnv, version: string, origin: string): s
   ul { padding-left:18px; color:#b6c2cf; }
 </style></head>
 <body><main>
-  <span class="badge">nokey-cli ${version}</span>
+  <span class="badge">kono-cli ${version}</span>
   <h1>${name}</h1>
   <p class="lead">A streaming gateway to <a href="${upstream}">nokey-router</a>. Upstream: <code>${upstream}</code></p>
   <p class="lead">${keyNote}</p>
@@ -370,10 +370,10 @@ export function landingPage(env: GatewayEnv, version: string, origin: string): s
   <ul>${PUBLIC_PATHS.map((p) => `<li><code>${p}</code></li>`).join("")}</ul>
 
   <h2>Not proxied</h2>
-  <p class="lead">Traces, learning, source and forge stay on localhost. Run <code>nokey proxy</code> for the full surface.</p>
+  <p class="lead">Traces, learning, source and forge stay on localhost. Run <code>kono proxy</code> for the full surface.</p>
 
   <h2>Use it from the CLI</h2>
-  <pre>export NOKEY_BASE_URL=${origin}
-nokey</pre>
+  <pre>export KONO_BASE_URL=${origin}
+kono</pre>
 </main></body></html>`;
 }

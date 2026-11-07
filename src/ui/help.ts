@@ -51,7 +51,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
 
 export function markdownForHelp(): string {
   const lines: string[] = [];
-  lines.push(">> nokey — a stateful, colour-coded chat for nokey-router");
+  lines.push(">> kono — a stateful, colour-coded chat for nokey-router");
   lines.push("");
   for (const group of SHORTCUTS) {
     lines.push(`## ${group.title}`);

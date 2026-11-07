@@ -9,7 +9,7 @@ import { extractHeuristic, contradictions, novel } from "../src/core/memory-extr
 import { ConfigStore, DEFAULT_CONFIG, mergeConfig } from "../src/store/config.ts";
 
 function tempHome(): string {
-  return mkdtempSync(join(tmpdir(), "nokey-test-"));
+  return mkdtempSync(join(tmpdir(), "kono-test-"));
 }
 
 test("sessions persist, reload and preserve the active path", () => {

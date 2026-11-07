@@ -9,9 +9,9 @@
  * unrelated session does not drag stale context along.
  *
  * Scopes:
- *   global  — ~/.nokey/memory.json            (you, everywhere)
- *   project — <cwd>/.nokey/memory.json        (this repository)
- *   session — ~/.nokey/sessions/<id>/memory.json
+ *   global  — ~/.kono/memory.json            (you, everywhere)
+ *   project — <cwd>/.kono/memory.json        (this repository)
+ *   session — ~/.kono/sessions/<id>/memory.json
  */
 import { existsSync } from "node:fs";
 import { readJsonSafe, writeJson } from "../util/fsx.ts";
@@ -390,12 +390,12 @@ export class MemoryBank {
   }
 
   export(): string {
-    return JSON.stringify({ format: "nokey-memory", version: 1, scope: this.scope, items: this.items }, null, 2);
+    return JSON.stringify({ format: "kono-memory", version: 1, scope: this.scope, items: this.items }, null, 2);
   }
 
   importJson(json: string): number {
     const parsed = JSON.parse(json) as { items?: MemoryItem[] };
-    if (!Array.isArray(parsed.items)) throw new Error("Not a nokey memory export");
+    if (!Array.isArray(parsed.items)) throw new Error("Not a kono memory export");
     let added = 0;
     for (const raw of parsed.items) {
       if (!raw?.text) continue;

@@ -8,9 +8,9 @@
  * `/retry` lossless.
  *
  * On disk:
- *   ~/.nokey/sessions/<id>/meta.json     — small, rewritten atomically
- *   ~/.nokey/sessions/<id>/events.jsonl  — append-only, fsynced per turn
- *   ~/.nokey/sessions/<id>/memory.json   — session-scoped memories
+ *   ~/.kono/sessions/<id>/meta.json     — small, rewritten atomically
+ *   ~/.kono/sessions/<id>/events.jsonl  — append-only, fsynced per turn
+ *   ~/.kono/sessions/<id>/memory.json   — session-scoped memories
  */
 import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -574,12 +574,12 @@ export class SessionStore {
 
   exportJson(session: Session): string {
     const events = readJsonl<SessionEvent>(session.eventsPath);
-    return JSON.stringify({ format: "nokey-session", version: 1, meta: session.meta, events }, null, 2);
+    return JSON.stringify({ format: "kono-session", version: 1, meta: session.meta, events }, null, 2);
   }
 
   importJson(json: string): Session {
     const parsed = JSON.parse(json) as { format?: string; meta?: SessionMeta; events?: SessionEvent[] };
-    if (!parsed.meta || !Array.isArray(parsed.events)) throw new Error("Not a nokey session export");
+    if (!parsed.meta || !Array.isArray(parsed.events)) throw new Error("Not a kono session export");
     const id = newId("s_");
     const files = Session.filePaths(this.home, id);
     ensureDir(files.dir);

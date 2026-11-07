@@ -7,7 +7,7 @@
  * strict JSON and then runs the *same* validation and de-duplication, so a bad
  * model can waste a request but cannot corrupt the bank.
  */
-import type { NoKeyRouter } from "../router/client.ts";
+import type { RouterClient } from "../router/client.ts";
 import type { MemoryKind, MemoryItem } from "../store/memory.ts";
 import { jaccard, tokenize } from "../store/memory.ts";
 
@@ -105,7 +105,7 @@ Rules:
 
 /** LLM-assisted extraction; returns [] on any failure (never throws). */
 export async function extractWithModel(
-  router: NoKeyRouter,
+  router: RouterClient,
   model: string,
   turn: { user: string; assistant?: string },
   signal?: AbortSignal,

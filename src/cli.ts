@@ -2,15 +2,15 @@
 /**
  * Entry point.
  *
- * Two personalities: an interactive TUI (`nokey`) and a scriptable printer
- * (`nokey -p "…"`, `nokey models --json`) that shares the same engine, memory
+ * Two personalities: an interactive TUI (`kono`) and a scriptable printer
+ * (`kono -p "…"`, `kono models --json`) that shares the same engine, memory
  * bank and session log. Everything is reachable without a subcommand
- * (`nokey sessions`, `nokey memory`, `nokey proxy`) for use in Makefiles.
+ * (`kono sessions`, `kono memory`, `kono proxy`) for use in Makefiles.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import process from "node:process";
-import { NoKeyRouter, catalogModels } from "./router/client.ts";
+import { RouterClient, catalogModels } from "./router/client.ts";
 import { ConfigStore } from "./store/config.ts";
 import { SessionStore } from "./store/session.ts";
 import type { Session } from "./store/session.ts";
@@ -28,7 +28,7 @@ import { startProxy } from "./server/proxy.ts";
 import { fmtDuration } from "./util/time.ts";
 import { fmtTokens } from "./util/tokens.ts";
 import { safeFileName } from "./util/fsx.ts";
-import { VERSION, HELP_TEXT } from "./version.ts";
+import { VERSION, HELP_TEXT, HOSTED_GATEWAY } from "./version.ts";
 
 const VALUE_FLAGS = new Set([
   "model",
@@ -101,13 +101,13 @@ function flagBool(flags: Record<string, string | boolean>, name: string): boolea
 }
 
 function fail(message: string, code = 1): never {
-  process.stderr.write(`nokey: ${message}\n`);
+  process.stderr.write(`kono: ${message}\n`);
   process.exit(code);
 }
 
-function buildRouter(configStore: ConfigStore): NoKeyRouter {
+function buildRouter(configStore: ConfigStore): RouterClient {
   const cfg = configStore.value;
-  return new NoKeyRouter({
+  return new RouterClient({
     baseUrl: cfg.router.baseUrl,
     apiKey: cfg.router.apiKey,
     adminSecret: cfg.router.adminSecret,
@@ -118,7 +118,7 @@ function buildRouter(configStore: ConfigStore): NoKeyRouter {
 }
 
 function pickAutoBank(home: string, configStore: ConfigStore, cwd: string): MemoryBank {
-  const isRepo = existsSync(join(cwd, ".git")) || existsSync(join(cwd, ".nokey"));
+  const isRepo = existsSync(join(cwd, ".git")) || existsSync(join(cwd, ".kono"));
   const stats = configStore.value.memory;
   if (stats.useProjectMemory && isRepo) {
     return new MemoryBank(projectMemoryPath(cwd), "project", { halfLifeDays: stats.halfLifeDays });
@@ -152,7 +152,7 @@ async function main(): Promise<void> {
     return;
   }
   if (flagBool(flags, "version")) {
-    process.stdout.write(`nokey ${VERSION}\n`);
+    process.stdout.write(`kono ${VERSION}\n`);
     return;
   }
   if (command === "help") {
@@ -160,11 +160,11 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "version") {
-    process.stdout.write(`nokey ${VERSION}\n`);
+    process.stdout.write(`kono ${VERSION}\n`);
     return;
   }
 
-  const home = resolveHome(flagString(flags, "home") ? { ...process.env, NOKEY_HOME: flagString(flags, "home")! } : process.env);
+  const home = resolveHome(flagString(flags, "home") ? { ...process.env, KONO_HOME: flagString(flags, "home")! } : process.env);
   ensureDir(home);
   const configStore = new ConfigStore(home);
   if (flagString(flags, "key")) configStore.value.router.apiKey = flagString(flags, "key")!;
@@ -191,6 +191,8 @@ async function main(): Promise<void> {
       return toolsCommand(router, rest, flagBool(flags, "json"));
     case "doctor":
       return doctorCommand(configStore, router, store);
+    case "gateway":
+      return gatewayCommand();
     case "proxy":
       return proxyCommand(configStore, router, flags);
     case "export":
@@ -222,7 +224,7 @@ async function readStdin(): Promise<string> {
 
 interface Ctx {
   configStore: ConfigStore;
-  router: NoKeyRouter;
+  router: RouterClient;
   store: SessionStore;
   home: string;
   flags: Record<string, string | boolean>;
@@ -265,7 +267,7 @@ function makeEngine(ctx: Ctx, session: Session, stack: MemoryStack, sessionBank:
 
 async function interactive(ctx: Ctx): Promise<void> {
   if (!process.stdout.isTTY || !process.stdin.isTTY) {
-    fail("interactive mode needs a TTY. Use `nokey -p \"prompt\"` for scripts.");
+    fail("interactive mode needs a TTY. Use `kono -p \"prompt\"` for scripts.");
   }
   const session = resolveSession(ctx);
   const { stack, sessionBank, autoBank } = buildMemoryStack(ctx.home, session, ctx.configStore, ctx.cwd);
@@ -283,7 +285,7 @@ async function interactive(ctx: Ctx): Promise<void> {
   });
 
   if (!ctx.router.hasKey) {
-    app.notice("no API key yet — run /key <ROUTER_API_KEY> or export NOKEY_API_KEY", "warn", 12000);
+    app.notice("no API key yet — run /key <ROUTER_API_KEY> or export KONO_API_KEY", "warn", 12000);
   }
   await app.run();
 }
@@ -321,10 +323,10 @@ async function printMode(prompt: string, ctx: PrintOptions): Promise<void> {
         if (showReasoning && !json) process.stderr.write(ev.delta);
         break;
       case "routing":
-        if (process.env.NOKEY_DEBUG) process.stderr.write(`\n[routing] ${ev.message}\n`);
+        if (process.env.KONO_DEBUG) process.stderr.write(`\n[routing] ${ev.message}\n`);
         break;
       case "tool":
-        if (process.env.NOKEY_DEBUG) process.stderr.write(`\n[tool] ${ev.call.name} ${ev.call.arguments.slice(0, 200)}\n`);
+        if (process.env.KONO_DEBUG) process.stderr.write(`\n[tool] ${ev.call.name} ${ev.call.arguments.slice(0, 200)}\n`);
         break;
       case "done":
         finalTelemetry = {
@@ -334,7 +336,7 @@ async function printMode(prompt: string, ctx: PrintOptions): Promise<void> {
         break;
       case "error": {
         const info = explainError(ev.error);
-        process.stderr.write(`\nnokey: ${info.message}${info.hint ? `\n       ${info.hint}` : ""}\n`);
+        process.stderr.write(`\nkono: ${info.message}${info.hint ? `\n       ${info.hint}` : ""}\n`);
         exitCode = 1;
         break;
       }
@@ -423,7 +425,7 @@ function sessionsCommand(store: SessionStore, rest: string[], flags: Record<stri
   }
   if (sub === "show") {
     const id = rest[1];
-    if (!id) fail("usage: nokey sessions show <id>");
+    if (!id) fail("usage: kono sessions show <id>");
     const session = store.load(id) ?? (() => {
       const hit = store.list().find((s) => s.id.startsWith(id));
       return hit ? store.load(hit.id) : null;
@@ -434,7 +436,7 @@ function sessionsCommand(store: SessionStore, rest: string[], flags: Record<stri
   }
   if (sub === "rm" || sub === "delete") {
     const id = rest[1];
-    if (!id) fail("usage: nokey sessions rm <id>");
+    if (!id) fail("usage: kono sessions rm <id>");
     const hit = store.list().find((s) => s.id === id || s.id.startsWith(id));
     if (!hit) fail(`no session matching "${id}"`);
     store.delete(hit.id);
@@ -443,7 +445,7 @@ function sessionsCommand(store: SessionStore, rest: string[], flags: Record<stri
   }
   if (sub === "export") {
     const id = rest[1];
-    if (!id) fail("usage: nokey sessions export <id> [path]");
+    if (!id) fail("usage: kono sessions export <id> [path]");
     const hit = store.list().find((s) => s.id === id || s.id.startsWith(id));
     if (!hit) fail(`no session matching "${id}"`);
     const session = store.load(hit.id);
@@ -455,14 +457,14 @@ function sessionsCommand(store: SessionStore, rest: string[], flags: Record<stri
   }
   if (sub === "import") {
     const path = rest[1];
-    if (!path) fail("usage: nokey sessions import <file>");
+    if (!path) fail("usage: kono sessions import <file>");
     const session = store.importJson(readFileSync(resolve(path), "utf8"));
     process.stdout.write(`imported ${session.meta.id} (${session.meta.title})\n`);
     return;
   }
   if (sub === "search") {
     const query = rest.slice(1).join(" ");
-    if (!query) fail("usage: nokey sessions search <query>");
+    if (!query) fail("usage: kono sessions search <query>");
     const hits = store.search(query, { limit: 60 });
     for (const hit of hits) {
       process.stdout.write(`${hit.sessionTitle}  [${hit.role}]  ${hit.snippet}\n`);
@@ -490,14 +492,14 @@ function memoryCommand(home: string, store: SessionStore, configStore: ConfigSto
   }
   if (sub === "add") {
     const text = rest.slice(1).join(" ");
-    if (!text) fail("usage: nokey memory add <text>");
+    if (!text) fail("usage: kono memory add <text>");
     const { item, action } = banks[banks.length - 1]!.add(text, { kind: "note", source: { kind: "manual" } });
     process.stdout.write(`${action}: ${item.id} (${item.scope})\n`);
     return;
   }
   if (sub === "rm" || sub === "forget") {
     const target = rest[1];
-    if (!target) fail("usage: nokey memory rm <id|text>");
+    if (!target) fail("usage: kono memory rm <id|text>");
     let removed = 0;
     for (const bank of banks) {
       const found = bank.find(target) ?? bank.items.find((i) => i.text.toLowerCase().includes(target.toLowerCase()));
@@ -520,7 +522,7 @@ function memoryCommand(home: string, store: SessionStore, configStore: ConfigSto
     return;
   }
   if (sub === "export") {
-    const target = resolve(rest[1] ?? `nokey-memory-${Date.now()}.json`);
+    const target = resolve(rest[1] ?? `kono-memory-${Date.now()}.json`);
     const exportBank = banks[banks.length - 1]!;
     writeFileSync(target, exportBank.export(), "utf8");
     process.stdout.write(`exported ${exportBank.items.length} items → ${target}\n`);
@@ -528,7 +530,7 @@ function memoryCommand(home: string, store: SessionStore, configStore: ConfigSto
   }
   if (sub === "import") {
     const path = rest[1];
-    if (!path) fail("usage: nokey memory import <file>");
+    if (!path) fail("usage: kono memory import <file>");
     const added = banks[banks.length - 1]!.importJson(readFileSync(resolve(path), "utf8"));
     process.stdout.write(`imported ${added} items\n`);
     return;
@@ -537,7 +539,7 @@ function memoryCommand(home: string, store: SessionStore, configStore: ConfigSto
   fail(`unknown memory subcommand "${sub}"`);
 }
 
-async function modelsCommand(router: NoKeyRouter, json: boolean): Promise<void> {
+async function modelsCommand(router: RouterClient, json: boolean): Promise<void> {
   try {
     const catalog = await router.models();
     const models = catalogModels(catalog);
@@ -556,12 +558,12 @@ async function modelsCommand(router: NoKeyRouter, json: boolean): Promise<void> 
   }
 }
 
-async function toolsCommand(router: NoKeyRouter, rest: string[], json: boolean): Promise<void> {
+async function toolsCommand(router: RouterClient, rest: string[], json: boolean): Promise<void> {
   const sub = rest[0];
   try {
     if (sub === "run") {
       const name = rest[1];
-      if (!name) fail("usage: nokey tools run <name> [json]");
+      if (!name) fail("usage: kono tools run <name> [json]");
       let args: unknown = {};
       const raw = rest.slice(2).join(" ");
       if (raw) {
@@ -592,14 +594,15 @@ async function toolsCommand(router: NoKeyRouter, rest: string[], json: boolean):
   }
 }
 
-async function doctorCommand(configStore: ConfigStore, router: NoKeyRouter, store: SessionStore): Promise<void> {
+async function doctorCommand(configStore: ConfigStore, router: RouterClient, store: SessionStore): Promise<void> {
   const cfg = configStore.value;
-  process.stdout.write(`nokey ${VERSION} · node ${process.versions.node} · ${process.platform}\n`);
+  process.stdout.write(`kono ${VERSION} · node ${process.versions.node} · ${process.platform}\n`);
   process.stdout.write(`home      ${store.home}\n`);
   process.stdout.write(`config    ${configStore.path}\n`);
   process.stdout.write(`router    ${cfg.router.baseUrl}\n`);
   process.stdout.write(`api key   ${router.hasKey ? configStore.maskKey() : "MISSING"}\n`);
   process.stdout.write(`theme     ${cfg.ui.theme} · colour ${detectColorMode()}\n`);
+  process.stdout.write(`hosted    ${HOSTED_GATEWAY} · \`kono gateway\` for status\n`);
   const started = Date.now();
   try {
     const health = await router.health();
@@ -617,11 +620,29 @@ async function doctorCommand(configStore: ConfigStore, router: NoKeyRouter, stor
   process.stdout.write(`sessions  ${stats.sessions} · ${(stats.bytes / 1024).toFixed(1)} KiB\n`);
 }
 
-async function proxyCommand(configStore: ConfigStore, router: NoKeyRouter, flags: Record<string, string | boolean>): Promise<void> {
+/** `kono gateway` — where the hosted gateway lives, and whether it is up. */
+async function gatewayCommand(): Promise<void> {
+  process.stdout.write(`hosted gateway  ${HOSTED_GATEWAY}\n`);
+  const started = Date.now();
+  try {
+    const res = await fetch(`${HOSTED_GATEWAY}/healthz`, { signal: AbortSignal.timeout(8000) });
+    const body = (await res.json()) as { ok?: boolean; keyConfigured?: boolean; upstream?: string };
+    process.stdout.write(
+      `status          ${res.status} in ${Date.now() - started}ms · ${body.ok ? "ok" : "degraded"} · key ${body.keyConfigured ? "configured" : "not configured"}\n`,
+    );
+    process.stdout.write(`upstream        ${body.upstream ?? "unknown"}\n`);
+  } catch (err) {
+    process.stdout.write(`status          unreachable: ${(err as Error).message}\n`);
+  }
+  process.stdout.write(`route through it  export KONO_BASE_URL=${HOSTED_GATEWAY}\n`);
+  process.stdout.write(`verify            npm run check:gateway -- ${HOSTED_GATEWAY}\n`);
+}
+
+async function proxyCommand(configStore: ConfigStore, router: RouterClient, flags: Record<string, string | boolean>): Promise<void> {
   const port = Number(flagString(flags, "port") ?? 8787);
   const host = flagString(flags, "host") ?? "127.0.0.1";
   const server = await startProxy({ router, config: configStore, port, host });
-  process.stdout.write(`nokey proxy listening on http://${host}:${server.port}\n`);
+  process.stdout.write(`kono proxy listening on http://${host}:${server.port}\n`);
   process.stdout.write(`  → ${configStore.value.router.baseUrl}\n`);
   process.stdout.write("  CORS-enabled passthrough for /v1/* and /health · ctrl+c to stop\n");
   await new Promise<void>((resolvePromise) => {
@@ -636,7 +657,7 @@ async function proxyCommand(configStore: ConfigStore, router: NoKeyRouter, flags
 
 function exportCommand(store: SessionStore, rest: string[]): void {
   const id = rest[0];
-  if (!id) fail("usage: nokey export <session-id> [path]");
+  if (!id) fail("usage: kono export <session-id> [path]");
   const hit = store.list().find((s) => s.id === id || s.id.startsWith(id));
   if (!hit) fail(`no session matching "${id}"`);
   const session = store.load(hit.id);
@@ -647,11 +668,11 @@ function exportCommand(store: SessionStore, rest: string[]): void {
 }
 
 function initCommand(): void {
-  const path = resolve("NOKEY.md");
-  if (existsSync(path)) fail("NOKEY.md already exists");
+  const path = resolve("KONO.md");
+  if (existsSync(path)) fail("KONO.md already exists");
   writeFileSync(
     path,
-    `# Project instructions for nokey-cli
+    `# Project instructions for kono-cli
 
 Injected into every session started in this directory.
 
@@ -675,7 +696,7 @@ void renderMarkdown;
 void lineToAnsi;
 
 main().catch((err) => {
-  process.stderr.write(`nokey: ${(err as Error).message}\n`);
-  if (process.env.NOKEY_DEBUG) process.stderr.write(`${(err as Error).stack}\n`);
+  process.stderr.write(`kono: ${(err as Error).message}\n`);
+  if (process.env.KONO_DEBUG) process.stderr.write(`${(err as Error).stack}\n`);
   process.exit(1);
 });

@@ -71,7 +71,7 @@ async function startUpstream(opts: { fail?: boolean } = {}): Promise<Upstream> {
 function gatewayAt(upstreamUrl: string, env: Record<string, string> = {}) {
   return (req: Request) =>
     handleGateway(req, {
-      env: { NOKEY_BASE_URL: upstreamUrl, ROUTER_API_KEY: "router-key", ...env },
+      env: { KONO_BASE_URL: upstreamUrl, ROUTER_API_KEY: "router-key", ...env },
       version: "test",
     });
 }
@@ -103,7 +103,7 @@ test("landing page documents upstream, key policy and the deployed origin", asyn
     assert.match(html, new RegExp(up.url));
     assert.match(html, /curl -N https:\/\/gw\.example\/v1\/chat\/completions/);
     assert.match(html, /server key is injected/);
-    assert.match(html, /nokey-cli test/);
+    assert.match(html, /kono-cli test/);
     assert.doesNotMatch(html, /router-key/);
   } finally {
     await up.close();
@@ -113,7 +113,7 @@ test("landing page documents upstream, key policy and the deployed origin", asyn
 test("healthz reports configuration without leaking the key", async () => {
   const up = await startUpstream();
   try {
-    const res = await gatewayAt(up.url, { NOKEY_ALLOW_ADMIN: "0" })(msg("/healthz"));
+    const res = await gatewayAt(up.url, { KONO_ALLOW_ADMIN: "0" })(msg("/healthz"));
     assert.equal(res.status, 200);
     const body = (await res.json()) as Record<string, unknown>;
     assert.equal(body.ok, true);
@@ -142,7 +142,7 @@ test("honours the caller's own key unless forced", async () => {
   try {
     await gatewayAt(up.url)(msg("/v1/models", { headers: { authorization: "Bearer caller-key" } }));
     assert.equal(up.seen[0]?.auth, "Bearer caller-key");
-    await gatewayAt(up.url, { NOKEY_FORCE_KEY: "1" })(
+    await gatewayAt(up.url, { KONO_FORCE_KEY: "1" })(
       msg("/v1/models", { headers: { authorization: "Bearer caller-key" } }),
     );
     assert.equal(up.seen[1]?.auth, "Bearer router-key");
@@ -154,7 +154,7 @@ test("honours the caller's own key unless forced", async () => {
 test("sends no credentials at all when the deployment has no key", async () => {
   const up = await startUpstream();
   try {
-    await handleGateway(msg("/v1/models"), { env: { NOKEY_BASE_URL: up.url } });
+    await handleGateway(msg("/v1/models"), { env: { KONO_BASE_URL: up.url } });
     assert.equal(up.seen[0]?.auth, undefined);
   } finally {
     await up.close();
@@ -177,13 +177,13 @@ test("admin routes are blocked and never forwarded", async () => {
 test("admin routes work only when enabled, and secrets are not forwarded by default", async () => {
   const up = await startUpstream();
   try {
-    const enabled = gatewayAt(up.url, { NOKEY_ALLOW_ADMIN: "1" });
+    const enabled = gatewayAt(up.url, { KONO_ALLOW_ADMIN: "1" });
     const res = await enabled(msg("/v1/traces", { headers: { "x-admin-secret": "caller-secret" } }));
     assert.equal(res.status, 200);
     assert.equal(up.seen[0]?.path, "/v1/traces");
     assert.equal(up.seen[0]?.admin, undefined, "admin secret must not pass through by default");
 
-    const passthrough = gatewayAt(up.url, { NOKEY_ALLOW_ADMIN: "1", NOKEY_ALLOW_ADMIN_SECRET: "1" });
+    const passthrough = gatewayAt(up.url, { KONO_ALLOW_ADMIN: "1", KONO_ALLOW_ADMIN_SECRET: "1" });
     await passthrough(msg("/v1/traces", { headers: { "x-admin-secret": "caller-secret" } }));
     assert.equal(up.seen[1]?.admin, "caller-secret");
   } finally {
@@ -194,7 +194,7 @@ test("admin routes work only when enabled, and secrets are not forwarded by defa
 test("a gateway can require the caller's own key", async () => {
   const up = await startUpstream();
   try {
-    const guarded = gatewayAt(up.url, { NOKEY_REQUIRE_CLIENT_KEY: "1" });
+    const guarded = gatewayAt(up.url, { KONO_REQUIRE_CLIENT_KEY: "1" });
     const anonymous = await guarded(msg("/v1/chat/completions", { method: "POST", body: "{}" }));
     assert.equal(anonymous.status, 401);
     const body = (await anonymous.json()) as { error: { code: string } };
@@ -228,10 +228,10 @@ test("unknown paths 404 and list what is proxied", async () => {
   }
 });
 
-test("NOKEY_ALLOW widens the allowlist for operators", async () => {
+test("KONO_ALLOW widens the allowlist for operators", async () => {
   const up = await startUpstream();
   try {
-    const res = await gatewayAt(up.url, { NOKEY_ALLOW: "/v1/custom/, /v1/models" })(
+    const res = await gatewayAt(up.url, { KONO_ALLOW: "/v1/custom/, /v1/models" })(
       msg("/v1/custom/thing"),
     );
     assert.equal(res.status, 200);
@@ -280,7 +280,7 @@ test("streams SSE incrementally, preserving upstream headers", async () => {
     assert.equal(res.status, 200);
     assert.match(res.headers.get("content-type") ?? "", /text\/event-stream/);
     assert.equal(res.headers.get("x-nokey-attempts"), "1");
-    assert.equal(res.headers.get("x-nokey-gateway"), "nokey-gateway/test");
+    assert.equal(res.headers.get("x-kono-gateway"), "kono-gateway/test");
     assert.equal(res.headers.get("content-length"), null, "streams must not be length-delimited");
     assert.equal(res.headers.get("cache-control"), "no-store");
     assert.equal(up.seen[0]?.body, JSON.stringify({ stream: true, messages: [] }));
@@ -343,10 +343,10 @@ test("the Node adapter runs the same core: CORS, key injection, full local surfa
 });
 
 test("the committed val matches the generator and is import-free", () => {
-  assert.ok(existsSync(VAL_PATH), "deploy/valtown/nokey-gateway.ts must be committed");
+  assert.ok(existsSync(VAL_PATH), "deploy/valtown/kono-gateway.ts must be committed");
   const committed = readFileSync(VAL_PATH, "utf8");
   assert.equal(committed, renderVal(), "run `npm run build:valtown` — the val has drifted from src/server/gateway.ts");
-  assert.match(committed, /export default async function nokeyGateway\(request: Request\)/);
+  assert.match(committed, /export default async function konoGateway\(request: Request\)/);
   assert.doesNotMatch(committed, /^\s*import\s/m, "a Val Town val must be a single self-contained file");
   assert.doesNotMatch(committed, /from "\.\.?\//, "no relative imports allowed");
 });
@@ -355,8 +355,8 @@ test("the val file actually serves requests end to end", async () => {
   const up = await startUpstream();
   const previous = { ...process.env };
   process.env.ROUTER_API_KEY = "val-key";
-  process.env.NOKEY_BASE_URL = up.url;
-  process.env.NOKEY_GATEWAY_NAME = "nokey-gateway-test";
+  process.env.KONO_BASE_URL = up.url;
+  process.env.KONO_GATEWAY_NAME = "kono-gateway-test";
   try {
     const mod = (await import(VAL_PATH)) as { default: (r: Request) => Promise<Response> };
     const res = await mod.default(new Request("https://my-val.web.val.run/v1/chat/completions", {
@@ -374,7 +374,7 @@ test("the val file actually serves requests end to end", async () => {
       gateway: string;
       keyConfigured: boolean;
     };
-    assert.equal(health.gateway, "nokey-gateway-test");
+    assert.equal(health.gateway, "kono-gateway-test");
     assert.equal(health.keyConfigured, true);
   } finally {
     for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key];
@@ -387,8 +387,8 @@ test("the val blocks admin routes by default", async () => {
   const up = await startUpstream();
   const previous = { ...process.env };
   process.env.ROUTER_API_KEY = "val-key";
-  process.env.NOKEY_BASE_URL = up.url;
-  delete process.env.NOKEY_ALLOW_ADMIN;
+  process.env.KONO_BASE_URL = up.url;
+  delete process.env.KONO_ALLOW_ADMIN;
   try {
     const mod = (await import(VAL_PATH)) as { default: (r: Request) => Promise<Response> };
     const res = await mod.default(new Request("https://my-val.web.val.run/v1/traces"));

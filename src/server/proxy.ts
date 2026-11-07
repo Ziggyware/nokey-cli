@@ -12,14 +12,14 @@
 import { createServer } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Readable } from "node:stream";
-import type { NoKeyRouter } from "../router/client.ts";
+import type { RouterClient } from "../router/client.ts";
 import type { ConfigStore } from "../store/config.ts";
 import type { GatewayEnv } from "./gateway.ts";
 import { handleGatewayDetailed } from "./gateway.ts";
 import { VERSION } from "../version.ts";
 
 export interface ProxyOptions {
-  router: NoKeyRouter;
+  router: RouterClient;
   config: ConfigStore;
   port: number;
   host: string;
@@ -31,15 +31,15 @@ export interface ProxyHandle {
 }
 
 /** Local gateways get the whole surface; public ones get an allowlist. */
-export function localGatewayEnv(router: NoKeyRouter, config: ConfigStore): GatewayEnv {
+export function localGatewayEnv(router: RouterClient, config: ConfigStore): GatewayEnv {
   return {
     ROUTER_API_KEY: router.hasKey ? config.value.router.apiKey : undefined,
-    NOKEY_BASE_URL: router.baseUrl,
-    NOKEY_ALLOW_ORIGIN: "*",
-    NOKEY_ALLOW: "/v1/",
-    NOKEY_ALLOW_ADMIN: "1",
-    NOKEY_ALLOW_ADMIN_SECRET: "1",
-    NOKEY_GATEWAY_NAME: "Local gateway to nokey-router",
+    KONO_BASE_URL: router.baseUrl,
+    KONO_ALLOW_ORIGIN: "*",
+    KONO_ALLOW: "/v1/",
+    KONO_ALLOW_ADMIN: "1",
+    KONO_ALLOW_ADMIN_SECRET: "1",
+    KONO_GATEWAY_NAME: "Local gateway to nokey-router",
   };
 }
 

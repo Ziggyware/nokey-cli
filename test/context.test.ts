@@ -18,7 +18,7 @@ function config(patch: Partial<Config["context"]> = {}, extra: Partial<Config> =
 }
 
 function tempDir(): string {
-  return mkdtempSync(join(tmpdir(), "nokey-ctx-"));
+  return mkdtempSync(join(tmpdir(), "kono-ctx-"));
 }
 
 test("system prompt carries persona, date and runtime facts", () => {
@@ -42,9 +42,9 @@ test("system prompt carries persona, date and runtime facts", () => {
 test("project instruction files are injected once and capped", () => {
   const dir = tempDir();
   try {
-    writeFileSync(join(dir, "NOKEY.md"), "# Rules\n- use tabs\n");
-    mkdirSync(join(dir, ".nokey"), { recursive: true });
-    writeFileSync(join(dir, ".nokey", "instructions.md"), "extra instructions\n");
+    writeFileSync(join(dir, "KONO.md"), "# Rules\n- use tabs\n");
+    mkdirSync(join(dir, ".kono"), { recursive: true });
+    writeFileSync(join(dir, ".kono", "instructions.md"), "extra instructions\n");
     const docs = readProjectInstructions(dir);
     assert.match(docs, /use tabs/);
     assert.match(docs, /extra instructions/);

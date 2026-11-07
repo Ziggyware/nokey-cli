@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Post-deploy smoke check for a hosted nokey gateway.
+ * Post-deploy smoke check for a hosted kono gateway.
  *
- *   node scripts/check-gateway.ts https://your-val.web.val.run
- *   node scripts/check-gateway.ts https://your-val.web.val.run --key nok_…
+ *   node scripts/check-gateway.ts https://kono.val.run
+ *   node scripts/check-gateway.ts https://kono.val.run --key nok_…
  *
  * Verifies the things that break silently in a serverless deployment: CORS
  * preflight, key injection, streaming (a buffered proxy still returns 200 but
@@ -128,7 +128,7 @@ async function main(): Promise<void> {
   const failed = results.filter((r) => !r.ok);
   console.log("");
   if (failed.length === 0) {
-    console.log(`${base} is healthy · export NOKEY_BASE_URL=${base} and run \`nokey\``);
+    console.log(`${base} is healthy · export KONO_BASE_URL=${base} and run \`kono\``);
   } else {
     console.log(`${failed.length} check(s) failed: ${failed.map((f) => f.name).join(", ")}`);
     process.exitCode = 1;

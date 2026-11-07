@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 import { startMockRouter } from "./mock-router.ts";
-import { NoKeyRouter } from "../src/router/client.ts";
+import { RouterClient } from "../src/router/client.ts";
 import type { ChatEvent } from "../src/router/client.ts";
 import { SseParser } from "../src/router/sse.ts";
 import { DEFAULT_CONFIG } from "../src/store/config.ts";
@@ -18,7 +18,7 @@ import { startProxy } from "../src/server/proxy.ts";
 import { ConfigStore } from "../src/store/config.ts";
 
 function tempHome(): string {
-  return mkdtempSync(join(tmpdir(), "nokey-int-"));
+  return mkdtempSync(join(tmpdir(), "kono-int-"));
 }
 
 function config(patch: Partial<Config["context"]> = {}, memory: Partial<Config["memory"]> = {}, extra: Partial<Config> = {}): Config {
@@ -56,7 +56,7 @@ test("SSE parser reassembles frames split across chunks", () => {
 test("streaming client yields reasoning, content and telemetry", async () => {
   const mock = await startMockRouter({ chunkDelayMs: 0 });
   try {
-    const router = new NoKeyRouter({ baseUrl: mock.url, apiKey: "test", retries: 0 });
+    const router = new RouterClient({ baseUrl: mock.url, apiKey: "test", retries: 0 });
     let content = "";
     let reasoning = "";
     let telemetry: Record<string, unknown> = {};
@@ -90,10 +90,12 @@ test("streaming client yields reasoning, content and telemetry", async () => {
 test("non-streaming completion parses buffered JSON and telemetry", async () => {
   const mock = await startMockRouter();
   try {
-    const router = new NoKeyRouter({ baseUrl: mock.url, apiKey: "test", retries: 0 });
+    const router = new RouterClient({ baseUrl: mock.url, apiKey: "test", retries: 0 });
     const { text, telemetry } = await router.complete({ model: "free:auto", messages: [{ role: "user", content: "hi" }] });
     assert.match(text, /minimal streaming client/);
     assert.equal(telemetry.attempts, 1);
+    assert.equal(telemetry.endpoints, 2, "the router's nokey object is parsed");
+    assert.equal(telemetry.model, "free:auto");
     assert.ok(telemetry.ttftMs !== undefined, "server-timing is parsed");
   } finally {
     await mock.close();
@@ -103,7 +105,7 @@ test("non-streaming completion parses buffered JSON and telemetry", async () => 
 test("429 is retried with backoff and then succeeds", async () => {
   const mock = await startMockRouter({ rateLimitFirst: 1 });
   try {
-    const router = new NoKeyRouter({ baseUrl: mock.url, apiKey: "test", retries: 2 });
+    const router = new RouterClient({ baseUrl: mock.url, apiKey: "test", retries: 2 });
     let content = "";
     let failed = false;
     for await (const ev of router.stream({ messages: [{ role: "user", content: "retry please" }] })) {
@@ -122,7 +124,7 @@ test("429 is retried with backoff and then succeeds", async () => {
 test("401 is not retried and surfaces a helpful message", async () => {
   const mock = await startMockRouter();
   try {
-    const router = new NoKeyRouter({ baseUrl: mock.url, apiKey: "bad", retries: 2 });
+    const router = new RouterClient({ baseUrl: mock.url, apiKey: "bad", retries: 2 });
     let error: { status?: number; message: string } | null = null;
     let content = "";
     for await (const ev of router.stream({ messages: [{ role: "user", content: "__401__" }] })) {
@@ -143,7 +145,7 @@ test("401 is not retried and surfaces a helpful message", async () => {
 test("aborting mid-stream keeps what arrived and reports the abort", async () => {
   const mock = await startMockRouter({ chunkDelayMs: 30 });
   try {
-    const router = new NoKeyRouter({ baseUrl: mock.url, apiKey: "test", retries: 0 });
+    const router = new RouterClient({ baseUrl: mock.url, apiKey: "test", retries: 0 });
     const controller = new AbortController();
     let content = "";
     let aborted = false;
@@ -166,7 +168,7 @@ test("aborting mid-stream keeps what arrived and reports the abort", async () =>
 test("degraded header is surfaced", async () => {
   const mock = await startMockRouter({ degraded: true });
   try {
-    const router = new NoKeyRouter({ baseUrl: mock.url, apiKey: "test", retries: 0 });
+    const router = new RouterClient({ baseUrl: mock.url, apiKey: "test", retries: 0 });
     let degraded = false;
     for await (const ev of router.stream({ messages: [{ role: "user", content: "hi" }] })) {
       if (ev.type === "degraded") degraded = true;
@@ -182,7 +184,7 @@ test("engine persists the turn, telemetry and learned memory", async () => {
   const mock = await startMockRouter();
   try {
     const deps = makeDeps(home, config({}, { extract: "heuristic" }));
-    const router = new NoKeyRouter({ baseUrl: mock.url, apiKey: "test", retries: 0 });
+    const router = new RouterClient({ baseUrl: mock.url, apiKey: "test", retries: 0 });
     const engine = new TurnEngine({
       session: deps.session,
       router,
@@ -230,7 +232,7 @@ test("engine records tool-call deltas when tools are enabled", async () => {
   const mock = await startMockRouter();
   try {
     const deps = makeDeps(home, config({}, { extract: "off" }));
-    const router = new NoKeyRouter({ baseUrl: mock.url, apiKey: "test", retries: 0 });
+    const router = new RouterClient({ baseUrl: mock.url, apiKey: "test", retries: 0 });
     const engine = new TurnEngine({
       session: deps.session,
       router,
@@ -258,7 +260,7 @@ test("engine compacts when the window fills and keeps working", async () => {
   const mock = await startMockRouter();
   try {
     const deps = makeDeps(home, config({ windowTokens: 3000, reserveOutputTokens: 800, compactAt: 0.3, keepRecent: 2, compaction: "auto" }, { extract: "off" }));
-    const router = new NoKeyRouter({ baseUrl: mock.url, apiKey: "test", retries: 0 });
+    const router = new RouterClient({ baseUrl: mock.url, apiKey: "test", retries: 0 });
     const engine = new TurnEngine({
       session: deps.session,
       router,
@@ -292,7 +294,7 @@ test("retry forks a sibling branch instead of overwriting", async () => {
   const mock = await startMockRouter();
   try {
     const deps = makeDeps(home, config({}, { extract: "off" }));
-    const router = new NoKeyRouter({ baseUrl: mock.url, apiKey: "test", retries: 0 });
+    const router = new RouterClient({ baseUrl: mock.url, apiKey: "test", retries: 0 });
     const engine = new TurnEngine({
       session: deps.session,
       router,
@@ -321,7 +323,7 @@ test("proxy forwards streams, injects the key and sets CORS", async () => {
   try {
     const configStore = new ConfigStore(home, {} as NodeJS.ProcessEnv);
     configStore.value.router.apiKey = "injected-key";
-    const router = new NoKeyRouter({ baseUrl: mock.url, retries: 0 });
+    const router = new RouterClient({ baseUrl: mock.url, retries: 0 });
     const proxy = await startProxy({ router, config: configStore, port: 0, host: "127.0.0.1" });
     try {
       const models = await fetch(`http://127.0.0.1:${proxy.port}/v1/models`);
@@ -372,7 +374,7 @@ test("CLI print mode streams an answer and records a session", async () => {
   const mock = await startMockRouter();
   const home = tempHome();
   try {
-    const env = { NOKEY_HOME: home, NOKEY_BASE_URL: mock.url, NOKEY_API_KEY: "test-key", NOKEY_COLOR: "none" };
+    const env = { KONO_HOME: home, KONO_BASE_URL: mock.url, KONO_API_KEY: "test-key", KONO_COLOR: "none" };
     const result = await runCli(["-p", "explain the router briefly"], env);
     assert.equal(result.code, 0, result.stderr);
     assert.match(result.stdout, /streaming client/);
@@ -396,7 +398,7 @@ test("CLI reports auth failures with an actionable message", async () => {
   const mock = await startMockRouter();
   const home = tempHome();
   try {
-    const result = await runCli(["-p", "__401__"], { NOKEY_HOME: home, NOKEY_BASE_URL: mock.url, NOKEY_API_KEY: "bad", NOKEY_COLOR: "none" });
+    const result = await runCli(["-p", "__401__"], { KONO_HOME: home, KONO_BASE_URL: mock.url, KONO_API_KEY: "bad", KONO_COLOR: "none" });
     assert.equal(result.code, 1);
     assert.match(result.stderr, /401|Unauthorized|ROUTER_API_KEY/);
   } finally {
@@ -409,13 +411,13 @@ test("CLI + memory + sessions utilities work end to end", async () => {
   const home = tempHome();
   const project = tempHome();
   try {
-    const env = { NOKEY_HOME: home, NOKEY_COLOR: "none", NOKEY_BASE_URL: "http://127.0.0.1:1" };
+    const env = { KONO_HOME: home, KONO_COLOR: "none", KONO_BASE_URL: "http://127.0.0.1:1" };
 
     // init writes into the *project* directory, never the CLI's own repo.
     const init = await runCli(["init"], env, project);
     assert.equal(init.code, 0, init.stderr);
-    assert.match(init.stdout, /NOKEY\.md/);
-    assert.ok(existsSync(join(project, "NOKEY.md")));
+    assert.match(init.stdout, /KONO\.md/);
+    assert.ok(existsSync(join(project, "KONO.md")));
 
     const add = await runCli(["memory", "add", "Always use TypeScript strict mode"], env, project);
     assert.equal(add.code, 0, add.stderr);

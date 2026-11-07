@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * nokey launcher.
+ * kono launcher.
  *
  * The CLI is written in TypeScript and is executed directly through Node's
  * type-stripping support, so there is no build step and no runtime dependency.
@@ -34,7 +34,7 @@ if (existsSync(src) && (major > 22 || (major === 22 && minor >= 6) || major >= 2
   argv = [dist];
 } else {
   process.stderr.write(
-    "nokey: this runtime cannot execute TypeScript directly.\n" +
+    "kono: this runtime cannot execute TypeScript directly.\n" +
       `       Node ${process.versions.node} found; Node >= 22.6 is required (or run "npm run build").\n`,
   );
   process.exit(1);
@@ -42,7 +42,7 @@ if (existsSync(src) && (major > 22 || (major === 22 && minor >= 6) || major >= 2
 
 const child = spawn(process.execPath, [...argv, ...process.argv.slice(2)], {
   stdio: "inherit",
-  env: { ...process.env, NOKEY_ENTRY: entry },
+  env: { ...process.env, KONO_ENTRY: entry },
 });
 child.on("exit", (code, signal) => {
   if (signal) process.kill(process.pid, signal);

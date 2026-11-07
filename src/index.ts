@@ -5,7 +5,7 @@
  * client, the session store, the memory engine and the markdown renderer have
  * no terminal dependencies.
  */
-export { NoKeyRouter, RouterError, catalogModels, catalogAliases, type ChatRequest, type ChatMessage, type ChatEvent, type Telemetry, type ModelCatalog, type ToolCatalog } from "./router/client.ts";
+export { RouterClient, RouterError, catalogModels, catalogAliases, type ChatRequest, type ChatMessage, type ChatEvent, type Telemetry, type ModelCatalog, type ToolCatalog } from "./router/client.ts";
 export { SseParser } from "./router/sse.ts";
 export { Session, SessionStore, deriveTitle, type Message, type SessionMeta, type SessionEvent, type SessionSummary } from "./store/session.ts";
 export { MemoryBank, MemoryStack, type MemoryItem, type MemoryKind, type MemoryScope } from "./store/memory.ts";

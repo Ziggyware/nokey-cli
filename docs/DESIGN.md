@@ -11,7 +11,7 @@ composer ──► TurnEngine.send()
               ├── 2. retrieve memory        MemoryStack.retrieve(query, budget)
               ├── 3. build context          buildContext() → system + wire messages
               ├── 4. compact if needed      summarise → append a `summary` node → rebuild
-              ├── 5. stream                 NoKeyRouter.stream() → ChatEvent[]
+              ├── 5. stream                 RouterClient.stream() → ChatEvent[]
               │        ├── checkpoint every 2 s (crash-safe partial answers)
               │        └── assemble tool-call deltas, telemetry, trace id
               ├── 6. finalise the node      telemetry, token counts, finish reason
@@ -80,7 +80,7 @@ than deleted.
 
 `buildContext()` produces:
 
-- `system` — persona, project docs (`NOKEY.md`, `AGENTS.md`, `CLAUDE.md`), the
+- `system` — persona, project docs (`KONO.md`, `AGENTS.md`, `CLAUDE.md`), the
   memory block, one runtime line (date, lane, cwd);
 - `messages` — the active path from the newest summary node to the leaf;
 - `stats` — a breakdown the UI renders as a meter and `/tokens` renders as a table.
@@ -98,7 +98,7 @@ are the model's scratch space, and replaying them measurably degrades answers.
 
 ## Streaming and failure
 
-`NoKeyRouter.stream()` is an async generator. Retries cover only the cases where
+`RouterClient.stream()` is an async generator. Retries cover only the cases where
 a retry can work (408/409/425/429/5xx and network errors), honour `Retry-After`
 in both delta-seconds and HTTP-date forms, and back off with jitter. A `401` or
 `403` is terminal and carries a hint about `/key`.
@@ -110,7 +110,7 @@ long enough to survive a slow server-side tool round, short enough to notice a
 dead endpoint.
 
 SSE parsing (`src/router/sse.ts`) handles frames split anywhere, CRLF/LF, `:
-routing` and `: keepalive` comments, the `nokey` telemetry chunk and `[DONE]`.
+routing` and `: keepalive` comments, the `kono` telemetry chunk and `[DONE]`.
 
 ## Rendering
 
@@ -138,7 +138,7 @@ passthrough all live there.
 - `src/server/proxy.ts` adapts it to `node:http` via `Readable.toWeb` and a
   response pump, and widens the allowlist to the full `/v1/*` surface (loopback
   only, admin secret supplied from local config).
-- `scripts/build-valtown.ts` inlines the same file into `deploy/valtown/nokey-gateway.ts`
+- `scripts/build-valtown.ts` inlines the same file into `deploy/valtown/kono-gateway.ts`
   plus an entrypoint that reads env from Deno or Node. The public deployment
   keeps admin routes closed and never injects `x-admin-secret`.
 

@@ -1,13 +1,19 @@
 export const VERSION = "1.0.0";
 
-export const HELP_TEXT = `nokey ${VERSION} — a stateful, colour-coded terminal chat for nokey-router
+/**
+ * Hosted deployment of the same gateway handler `kono proxy` runs locally:
+ * streaming chat with CORS and server-side key handling.
+ */
+export const HOSTED_GATEWAY = "https://kono.val.run";
+
+export const HELP_TEXT = `kono ${VERSION} — a stateful, colour-coded terminal chat for nokey-router
 
 USAGE
-  nokey                       start the interactive TUI (resumes the last session)
-  nokey "explain this repo"   one-shot: stream an answer to stdout
-  nokey -p "prompt" --json    scriptable output with telemetry
-  echo "prompt" | nokey       read the prompt from stdin
-  nokey <command>             session, memory, model and ops utilities
+  kono                       start the interactive TUI (resumes the last session)
+  kono "explain this repo"   one-shot: stream an answer to stdout
+  kono -p "prompt" --json    scriptable output with telemetry
+  echo "prompt" | kono       read the prompt from stdin
+  kono <command>             session, memory, model and ops utilities
 
 COMMANDS
   sessions list                 recent sessions with message/token counts
@@ -24,8 +30,13 @@ COMMANDS
   config get|set|path|init      read or change settings
   doctor                        connectivity, auth and storage checks
   proxy [--port 8787]           CORS-enabled local gateway to the router
+  gateway                       print the hosted gateway URL
   export <id> [path]            markdown export
-  init                          write a NOKEY.md project-instructions file
+  init                          write a KONO.md project-instructions file
+
+HOSTED
+  https://kono.val.run          the same gateway, hosted (see docs/DEPLOY-VALTOWN.md)
+                                use it with KONO_BASE_URL=https://kono.val.run
 
 FLAGS
   --model <lane>       free:auto (default), free:fast, free:smart, free:code, free:reasoning
@@ -38,18 +49,18 @@ FLAGS
   --key <key>          ROUTER_API_KEY for this run
   --base <url>         router base URL for this run
   --theme <name>       midnight | aurora | accessible | daylight | mono
-  --home <dir>         override the state directory (default ~/.nokey)
+  --home <dir>         override the state directory (default ~/.kono)
   --no-color           disable colour entirely
   --version, --help
 
 ENVIRONMENT
-  ROUTER_API_KEY / NOKEY_API_KEY     bearer token for the router
-  NOKEY_ADMIN_SECRET                 x-admin-secret for admin routes
-  NOKEY_BASE_URL                     override the router URL
-  NOKEY_MODEL, NOKEY_THEME           defaults
-  NOKEY_COLOR                        auto | truecolor | 256 | 16 | none
-  NOKEY_HOME                         state directory
-  NOKEY_DEBUG                        verbose diagnostics on stderr
+  ROUTER_API_KEY / KONO_API_KEY     bearer token for the router
+  KONO_ADMIN_SECRET                 x-admin-secret for admin routes
+  KONO_BASE_URL                     override the router URL
+  KONO_MODEL, KONO_THEME           defaults
+  KONO_COLOR                        auto | truecolor | 256 | 16 | none
+  KONO_HOME                         state directory
+  KONO_DEBUG                        verbose diagnostics on stderr
 
 INSIDE THE TUI
   ?  help      ctrl+k  palette     ctrl+s  sessions   ctrl+m  memory

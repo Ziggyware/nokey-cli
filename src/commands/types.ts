@@ -1,5 +1,5 @@
 /** The surface slash commands are allowed to touch. */
-import type { NoKeyRouter } from "../router/client.ts";
+import type { RouterClient } from "../router/client.ts";
 import type { ConfigStore } from "../store/config.ts";
 import type { MemoryBank, MemoryStack } from "../store/memory.ts";
 import type { Session, SessionStore, SessionSummary } from "../store/session.ts";
@@ -11,7 +11,7 @@ export type NoticeTone = "info" | "warn" | "error" | "ok";
 
 export interface CommandHost {
   readonly configStore: ConfigStore;
-  readonly router: NoKeyRouter;
+  readonly router: RouterClient;
   readonly store: SessionStore;
   readonly memory: MemoryStack;
   readonly autoBank: MemoryBank;

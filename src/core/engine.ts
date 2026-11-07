@@ -7,7 +7,7 @@
  * the same. That keeps behaviour identical everywhere.
  */
 import type { ChatMessage, Telemetry, ToolSpec } from "../router/client.ts";
-import { describeNetworkError, NoKeyRouter, RouterError } from "../router/client.ts";
+import { describeNetworkError, RouterClient, RouterError } from "../router/client.ts";
 import type { Config } from "../store/config.ts";
 import type { Message, Session, ToolCallRecord } from "../store/session.ts";
 import type { MemoryItem, MemoryStack } from "../store/memory.ts";
@@ -43,7 +43,7 @@ export type EngineEvent =
 
 export interface EngineDeps {
   session: Session;
-  router: NoKeyRouter;
+  router: RouterClient;
   config: Config;
   /** Global + project + session banks, already ordered by priority. */
   memory: MemoryStack;
@@ -510,7 +510,7 @@ export function explainError(error: unknown): { message: string; hint?: string }
     if (error.status === 401) {
       return {
         message: error.message,
-        hint: "Set your key with /key <ROUTER_API_KEY> or export NOKEY_API_KEY=…",
+        hint: "Set your key with /key <ROUTER_API_KEY> or export KONO_API_KEY=…",
       };
     }
     if (error.status === 429) {

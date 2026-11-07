@@ -72,7 +72,7 @@ test("python triple-quoted strings stay strings across lines", () => {
 });
 
 test("json keys are attributes", () => {
-  const lines = highlight('{"name": "nokey", "count": 3}', "json");
+  const lines = highlight('{"name": "kono", "count": 3}', "json");
   const attrs = lines.flat().filter((t) => t.k === "attr").map((t) => t.t);
   assert.deepEqual(attrs, ['"name"', '"count"']);
 });

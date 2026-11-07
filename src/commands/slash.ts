@@ -322,7 +322,7 @@ export const COMMANDS: SlashCommand[] = [
         return;
       }
       if (sub === "export") {
-        const path = resolve(positional[1] ?? `nokey-memory-${Date.now()}.json`);
+        const path = resolve(positional[1] ?? `kono-memory-${Date.now()}.json`);
         writeFileSync(path, host.autoBank.export(), "utf8");
         host.print(`Exported ${host.autoBank.items.length} memories → \`${path}\``);
         return;
@@ -699,7 +699,7 @@ export const COMMANDS: SlashCommand[] = [
     run: (host, args) => {
       const key = args[0];
       if (!key) {
-        host.print(`API key: ${host.router.hasKey ? `\`${host.configStore.maskKey()}\`` : "**not set**"}\n\nSet it with \`/key <value>\` or \`export NOKEY_API_KEY=…\`.`);
+        host.print(`API key: ${host.router.hasKey ? `\`${host.configStore.maskKey()}\`` : "**not set**"}\n\nSet it with \`/key <value>\` or \`export KONO_API_KEY=…\`.`);
         return;
       }
       host.configStore.value.router.apiKey = key;
@@ -897,15 +897,15 @@ export const COMMANDS: SlashCommand[] = [
   },
   {
     name: "init",
-    summary: "Write a NOKEY.md project-instructions file",
+    summary: "Write a KONO.md project-instructions file",
     category: "workspace",
     run: (host) => {
-      const path = resolve("NOKEY.md");
+      const path = resolve("KONO.md");
       if (existsSync(path)) {
-        host.notice("NOKEY.md already exists", "warn");
+        host.notice("KONO.md already exists", "warn");
         return;
       }
-      const content = `# Project instructions for nokey-cli
+      const content = `# Project instructions for kono-cli
 
 These notes are injected into every session started in this directory.
 
@@ -930,7 +930,7 @@ These notes are injected into every session started in this directory.
   {
     name: "quit",
     aliases: ["exit", "q"],
-    summary: "Leave nokey",
+    summary: "Leave kono",
     category: "app",
     keys: "Ctrl+C ×2",
     run: (host) => host.exit(0),

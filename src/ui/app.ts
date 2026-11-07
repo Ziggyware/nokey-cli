@@ -28,7 +28,7 @@ import { copyToClipboard } from "../util/clipboard.ts";
 import { COMMANDS, commandSuggestions, findCommand, parseCommand } from "../commands/slash.ts";
 import type { CommandHost, NoticeTone } from "../commands/types.ts";
 import type { ConfigStore } from "../store/config.ts";
-import type { NoKeyRouter } from "../router/client.ts";
+import type { RouterClient } from "../router/client.ts";
 import { catalogModels } from "../router/client.ts";
 import type { MemoryBank, MemoryStack } from "../store/memory.ts";
 import type { Session, SessionStore, SessionSummary } from "../store/session.ts";
@@ -42,7 +42,7 @@ import { markdownForHelp } from "./help.ts";
 
 export interface AppDeps {
   configStore: ConfigStore;
-  router: NoKeyRouter;
+  router: RouterClient;
   store: SessionStore;
   session: Session;
   engine: TurnEngine;
@@ -61,7 +61,7 @@ interface Notice {
 
 export class App implements CommandHost {
   readonly configStore: ConfigStore;
-  readonly router: NoKeyRouter;
+  readonly router: RouterClient;
   readonly store: SessionStore;
   readonly memory: MemoryStack;
   readonly autoBank: MemoryBank;
@@ -247,7 +247,7 @@ export class App implements CommandHost {
   showHelp(): void {
     this.#overlay = {
       kind: "help",
-      title: "nokey — help",
+      title: "kono — help",
       subtitle: `${COMMANDS.length} commands`,
       body: markdownForHelp(),
       scroll: 0,
@@ -347,7 +347,7 @@ export class App implements CommandHost {
     };
     process.on("uncaughtException", (err) => {
       cleanup();
-      process.stderr.write(`\nnokey crashed: ${err?.stack ?? err}\n`);
+      process.stderr.write(`\nkono crashed: ${err?.stack ?? err}\n`);
       process.exit(1);
     });
 
@@ -1072,7 +1072,7 @@ export class App implements CommandHost {
     const indent = blankCells(pad, null);
     const push = (cells: Cell[]) => out.push([...indent, ...sliceCells(cells, 0, width)]);
 
-    push(toCells([{ t: "◈ nokey", s: st(theme, "accent", { bold: true }) }]));
+    push(toCells([{ t: "◈ kono", s: st(theme, "accent", { bold: true }) }]));
     push(toCells([{ t: "stateful terminal chat for nokey-router", s: st(theme, "muted") }]));
     out.push([]);
     const hasKey = this.router.hasKey;
@@ -1080,7 +1080,9 @@ export class App implements CommandHost {
       toCells([
         { t: hasKey ? "● " : "○ ", s: hasKey ? st(theme, "ok") : st(theme, "warn") },
         { t: hasKey ? "authenticated" : "no API key ", s: hasKey ? st(theme, "muted") : st(theme, "warn") },
-        ...(hasKey ? [{ t: `· ${this.configStore.maskKey()}`, s: st(theme, "faint") }] : [{ t: "— run /key <ROUTER_API_KEY>", s: st(theme, "faint") }]),
+        ...(hasKey
+          ? [{ t: ` · ${this.configStore.maskKey()}`, s: st(theme, "faint") }]
+          : [{ t: " — run /key <ROUTER_API_KEY>", s: st(theme, "faint") }]),
       ]),
     );
     push(toCells([{ t: `router ${this.configStore.value.router.baseUrl}`, s: st(theme, "faint") }]));

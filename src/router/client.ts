@@ -2,7 +2,7 @@
  * nokey-router client.
  *
  * OpenAI-compatible surface with the router's extras: routing heartbeats,
- * in-band `nokey` telemetry, degraded-mode flags, trace ids and the server-side
+ * in-band `kono` telemetry, degraded-mode flags, trace ids and the server-side
  * tool plane. Streaming is incremental and cancellable; retries are surgical
  * (only errors that can actually be retried, with backoff and jitter).
  */
@@ -59,7 +59,7 @@ export interface Telemetry {
   totalMs?: number;
   model?: string;
   usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
-  /** Raw `nokey` object from the final chunk. */
+  /** Raw `kono` object from the final chunk. */
   nokey?: Record<string, unknown>;
   finishReason?: string;
   serverTiming?: string;
@@ -134,7 +134,7 @@ function jitter(ms: number): number {
   return Math.round(ms * (0.75 + Math.random() * 0.5));
 }
 
-export class NoKeyRouter {
+export class RouterClient {
   readonly baseUrl: string;
   #apiKey: string | undefined;
   #adminSecret: string | undefined;
@@ -151,7 +151,7 @@ export class NoKeyRouter {
     this.#timeoutMs = opts.timeoutMs ?? 180_000;
     this.#idleMs = opts.idleMs ?? 45_000;
     this.#retries = opts.retries ?? 2;
-    this.#userAgent = opts.userAgent ?? "nokey-cli/1.0 (+https://nokey-router.ziggyware.deno.net)";
+    this.#userAgent = opts.userAgent ?? "kono-cli/1.0 (+https://nokey-router.ziggyware.deno.net)";
     this.#fetch = opts.fetchImpl ?? fetch;
   }
 
@@ -562,14 +562,15 @@ export function telemetryFromHeaders(headers: Headers, payload: Record<string, u
     if (payload.usage && typeof payload.usage === "object") t.usage = payload.usage as Telemetry["usage"];
     if (payload.nokey && typeof payload.nokey === "object") {
       t.nokey = payload.nokey as Record<string, unknown>;
-      const nokey = payload.nokey as Record<string, unknown>;
-      if (nokey.degraded === true) t.degraded = true;
-      if (typeof nokey.attempts === "number") t.attempts = nokey.attempts;
-      if (typeof nokey.endpoints === "number") t.endpoints = nokey.endpoints;
-      if (typeof nokey.traceId === "string") t.traceId = nokey.traceId;
-      if (typeof nokey.model === "string") t.model = nokey.model;
-      if (typeof nokey.lane === "string" && !t.model) t.model = nokey.lane;
-      if (nokey.usage && typeof nokey.usage === "object") t.usage = nokey.usage as Telemetry["usage"];
+      // `wire` is the router's own `nokey` object; the name is part of its API.
+      const wire = payload.nokey as Record<string, unknown>;
+      if (wire.degraded === true) t.degraded = true;
+      if (typeof wire.attempts === "number") t.attempts = wire.attempts;
+      if (typeof wire.endpoints === "number") t.endpoints = wire.endpoints;
+      if (typeof wire.traceId === "string") t.traceId = wire.traceId;
+      if (typeof wire.model === "string") t.model = wire.model;
+      if (typeof wire.lane === "string" && !t.model) t.model = wire.lane;
+      if (wire.usage && typeof wire.usage === "object") t.usage = wire.usage as Telemetry["usage"];
     }
   }
   return t;

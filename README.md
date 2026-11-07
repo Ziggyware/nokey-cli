@@ -1,9 +1,9 @@
-# nokey
+# kono
 
 A stateful, colour-coded terminal chat for [nokey-router](https://nokey-router.ziggyware.deno.net) — streaming answers, syntax highlighting, a durable memory engine and a real session DAG, with zero runtime dependencies.
 
 ```
-◈ nokey Explain how the router stre…  ●  ⛁ free:auto   ✦ 12   ▕████░░░░░░▏ 38%   ⌗ 0mw4o0
+◈ kono Explain how the router stre…  ●  ⛁ free:auto   ✦ 12   ▕████░░░░░░▏ 38%   ⌗ 0mw4o0
   ● assistant · free:auto   #2
     Here's a minimal streaming client for **nokey-router**.
 
@@ -38,7 +38,7 @@ A stateful, colour-coded terminal chat for [nokey-router](https://nokey-router.z
 
 This CLI is the client that takes the router at its word:
 
-- **Streams the truth.** `: routing` heartbeats, `delta.reasoning_content`, tool-call deltas, in-band `nokey` telemetry, `X-Nokey-Degraded`, trace ids — all surfaced, none swallowed.
+- **Streams the truth.** `: routing` heartbeats, `delta.reasoning_content`, tool-call deltas, in-band `kono` telemetry, `X-Nokey-Degraded`, trace ids — all surfaced, none swallowed.
 - **Remembers.** A scored memory bank survives sessions and is injected on a token budget, never wholesale.
 - **Never loses history.** Messages form a tree; edits and regenerations create siblings you can walk with `ctrl+←/→`.
 - **Survives a crash.** Every turn is appended to an fsynced event log, so `kill -9` costs you at most the in-flight answer.
@@ -46,69 +46,69 @@ This CLI is the client that takes the router at its word:
 ## Install
 
 ```bash
-git clone <this repo> nokey-cli && cd nokey-cli
-node bin/nokey.js --help          # no install step: Node ≥ 22.6 strips types directly
+git clone <this repo> kono-cli && cd kono-cli
+node bin/kono.js --help          # no install step: Node ≥ 22.6 strips types directly
 ```
 
-Optionally link it as `nokey`:
+Optionally link it as `kono`:
 
 ```bash
 npm link            # or: npm install -g .
-nokey
+kono
 ```
 
 You need a router API key:
 
 ```bash
-export ROUTER_API_KEY=…           # or NOKEY_API_KEY
+export ROUTER_API_KEY=…           # or KONO_API_KEY
 # or, inside the TUI:
 /key <ROUTER_API_KEY>
 ```
 
-Keys live in `~/.nokey/config.json` with `0600` permissions, are never written to session logs, and are masked everywhere they are displayed (`nok_…3456`).
+Keys live in `~/.kono/config.json` with `0600` permissions, are never written to session logs, and are masked everywhere they are displayed (`kon_…3456`).
 
 ## Use
 
 ```bash
-nokey                              # interactive TUI (resumes your last session)
-nokey "explain this stack trace"   # one-shot, streams to stdout
-echo "summarise this diff" | nokey # stdin works too
-nokey -p "list risks" --json       # machine-readable: content + telemetry
-nokey -p "review src/app.ts" --model free:code --reasoning
+kono                              # interactive TUI (resumes your last session)
+kono "explain this stack trace"   # one-shot, streams to stdout
+echo "summarise this diff" | kono # stdin works too
+kono -p "list risks" --json       # machine-readable: content + telemetry
+kono -p "review src/app.ts" --model free:code --reasoning
 ```
 
 Utilities, all scriptable:
 
 ```bash
-nokey sessions list                # id, time, messages, tokens, title
-nokey sessions search bayesian     # full-text across every session
-nokey sessions export <id> out.json
-nokey memory list                  # every durable fact, with scope and kind
-nokey memory add "deploys are Thursdays" --pin
-nokey models --json                # the live catalogue from /v1/models
-nokey tools                        # the router's executable tool plane
-nokey tools run calculate '{"expression":"2+2"}'
-nokey doctor                       # connectivity, auth, storage
-nokey proxy --port 8787            # CORS gateway for browsers and other tools
+kono sessions list                # id, time, messages, tokens, title
+kono sessions search bayesian     # full-text across every session
+kono sessions export <id> out.json
+kono memory list                  # every durable fact, with scope and kind
+kono memory add "deploys are Thursdays" --pin
+kono models --json                # the live catalogue from /v1/models
+kono tools                        # the router's executable tool plane
+kono tools run calculate '{"expression":"2+2"}'
+kono doctor                       # connectivity, auth, storage
+kono proxy --port 8787            # CORS gateway for browsers and other tools
 ```
 
 ### Host the gateway
 
 The TUI needs a terminal, but the gateway does not. The same handler that backs
-`nokey proxy` ships as a single-file Val Town val, so browsers and other machines
+`kono proxy` ships as a single-file Val Town val, so browsers and other machines
 get a public origin with streaming and server-side key handling:
 
 ```bash
-npm run build:valtown                       # regenerate deploy/valtown/nokey-gateway.ts
+npm run build:valtown                       # regenerate deploy/valtown/kono-gateway.ts
 # paste that file into a new HTTP val, set ROUTER_API_KEY, save
-npm run check:gateway -- https://<handle>-nokey-gateway.web.val.run
+npm run check:gateway -- https://kono.val.run
 
-export NOKEY_BASE_URL=https://<handle>-nokey-gateway.web.val.run
-nokey
+export KONO_BASE_URL=https://kono.val.run
+kono
 ```
 
 The val proxies chat, models, tools, images and community rooms; admin routes
-stay closed, admin secrets are never injected, and `NOKEY_REQUIRE_CLIENT_KEY=1`
+stay closed, admin secrets are never injected, and `KONO_REQUIRE_CLIENT_KEY=1`
 stops a public URL from spending your quota. See
 [`docs/DEPLOY-VALTOWN.md`](docs/DEPLOY-VALTOWN.md) for the full walkthrough,
 security matrix and troubleshooting.
@@ -154,7 +154,7 @@ security matrix and troubleshooting.
 ### Sessions are event logs, conversations are trees
 
 ```
-~/.nokey/sessions/<id>/
+~/.kono/sessions/<id>/
   meta.json      rewritten atomically (title, model, leaf, counts)
   events.jsonl   append-only, fsynced per turn
   memory.json    session-scoped memories
@@ -177,8 +177,8 @@ Three scopes, merged on read:
 | scope | file | lifetime |
 |:--|:--|:--|
 | `session` | `sessions/<id>/memory.json` | this conversation |
-| `project` | `<cwd>/.nokey/memory.json` | this repository |
-| `global` | `~/.nokey/memory.json` | you, everywhere |
+| `project` | `<cwd>/.kono/memory.json` | this repository |
+| `global` | `~/.kono/memory.json` | you, everywhere |
 
 Extraction is deterministic by default (`memory.extract = "heuristic"`): sentence-level patterns catch preferences, decisions, constraints, identities and open tasks, then near-duplicates (token Jaccard ≥ 0.72) merge and contradictions supersede. Set `memory.extract = "llm"` to have a cheap lane propose candidates — they pass through exactly the same validation, so a bad model cannot corrupt the bank.
 
@@ -207,11 +207,11 @@ As a last resort the builder evicts the oldest *unpinned* message; pinned messag
 
 ### Project instructions
 
-Drop a `NOKEY.md` (or `AGENTS.md`, `CLAUDE.md`) in a directory and it is injected as project context for every session started there. `nokey init` scaffolds one.
+Drop a `KONO.md` (or `AGENTS.md`, `CLAUDE.md`) in a directory and it is injected as project context for every session started there. `kono init` scaffolds one.
 
 ## Configuration
 
-`~/.nokey/config.json`, or `nokey config get|set <section.key> <value>`.
+`~/.kono/config.json`, or `kono config get|set <section.key> <value>`.
 
 | key | default | notes |
 |:--|:--|:--|
@@ -230,7 +230,7 @@ Drop a `NOKEY.md` (or `AGENTS.md`, `CLAUDE.md`) in a directory and it is injecte
 | `ui.showReasoning` | `collapsed` | `collapsed` · `expanded` · `hidden` |
 | `ui.colorMode` | `auto` | truecolor → 256 → 16 → none auto-detected |
 
-Environment overrides: `ROUTER_API_KEY`, `NOKEY_API_KEY`, `NOKEY_ADMIN_SECRET`, `NOKEY_BASE_URL`, `NOKEY_MODEL`, `NOKEY_THEME`, `NOKEY_COLOR`, `NOKEY_HOME`, `NOKEY_DEBUG`.
+Environment overrides: `ROUTER_API_KEY`, `KONO_API_KEY`, `KONO_ADMIN_SECRET`, `KONO_BASE_URL`, `KONO_MODEL`, `KONO_THEME`, `KONO_COLOR`, `KONO_HOME`, `KONO_DEBUG`.
 
 ## Design notes
 
@@ -250,11 +250,11 @@ See [`docs/DESIGN.md`](docs/DESIGN.md) for the request lifecycle and the scoring
 npm test           # 80 tests: cells, highlight, markdown, memory, sessions, context, streaming, retries, gateway, CLI
 npm run typecheck  # strict tsc, erasable-syntax-only (runs without a build)
 npm run mock       # a local stand-in router on :8799
-NOKEY_BASE_URL=http://127.0.0.1:8799 NOKEY_API_KEY=test npm start
+KONO_BASE_URL=http://127.0.0.1:8799 KONO_API_KEY=test npm start
 npm run build:valtown && npm run check:gateway -- http://127.0.0.1:8787
 ```
 
-The mock implements SSE frames, routing heartbeats, `nokey` telemetry, degraded mode, 429-then-succeed and the tool plane, so the whole stack is testable offline.
+The mock implements SSE frames, routing heartbeats, `kono` telemetry, degraded mode, 429-then-succeed and the tool plane, so the whole stack is testable offline.
 
 ## Troubleshooting
 
@@ -264,7 +264,7 @@ The mock implements SSE frames, routing heartbeats, `nokey` telemetry, degraded 
 | spinner stalls, `routing …` in the footer | the router is racing lanes; it heartbeats every 15 s by design |
 | `degraded` badge | every lane was exhausted; the answer is real but unranked |
 | `context trimmed` notice | history exceeded the window and compaction was off |
-| colours look wrong | `nokey config set ui.colorMode 256`, or `NO_COLOR=1` |
+| colours look wrong | `kono config set ui.colorMode 256`, or `NO_COLOR=1` |
 
 ## License
 

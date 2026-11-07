@@ -1,6 +1,6 @@
 node_modules/
 dist/
-.nokey/
+.kono/
 *.log
 .DS_Store
 coverage/

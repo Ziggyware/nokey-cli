@@ -203,12 +203,12 @@ export function coerceConfig(cfg: Config): Config {
 }
 
 export interface EnvOverrides {
-  NOKEY_BASE_URL?: string;
-  NOKEY_API_KEY?: string;
-  NOKEY_ADMIN_SECRET?: string;
-  NOKEY_MODEL?: string;
-  NOKEY_THEME?: string;
-  NOKEY_COLOR?: string;
+  KONO_BASE_URL?: string;
+  KONO_API_KEY?: string;
+  KONO_ADMIN_SECRET?: string;
+  KONO_MODEL?: string;
+  KONO_THEME?: string;
+  KONO_COLOR?: string;
   NO_COLOR?: string;
   NOKEY_IDLE_MS?: string;
 }
@@ -227,13 +227,13 @@ export class ConfigStore {
 
   #applyEnv(env: NodeJS.ProcessEnv): void {
     const e = env as EnvOverrides;
-    if (e.NOKEY_BASE_URL) this.#config.router.baseUrl = e.NOKEY_BASE_URL;
-    if (e.NOKEY_API_KEY) this.#config.router.apiKey = e.NOKEY_API_KEY;
-    if (e.NOKEY_ADMIN_SECRET) this.#config.router.adminSecret = e.NOKEY_ADMIN_SECRET;
-    if (e.NOKEY_MODEL) this.#config.model.default = e.NOKEY_MODEL;
-    if (e.NOKEY_THEME) this.#config.ui.theme = e.NOKEY_THEME;
-    if (e.NOKEY_COLOR) this.#config.ui.colorMode = e.NOKEY_COLOR as ColorSetting;
-    if (e.NO_COLOR && !e.NOKEY_COLOR) this.#config.ui.colorMode = "none";
+    if (e.KONO_BASE_URL) this.#config.router.baseUrl = e.KONO_BASE_URL;
+    if (e.KONO_API_KEY) this.#config.router.apiKey = e.KONO_API_KEY;
+    if (e.KONO_ADMIN_SECRET) this.#config.router.adminSecret = e.KONO_ADMIN_SECRET;
+    if (e.KONO_MODEL) this.#config.model.default = e.KONO_MODEL;
+    if (e.KONO_THEME) this.#config.ui.theme = e.KONO_THEME;
+    if (e.KONO_COLOR) this.#config.ui.colorMode = e.KONO_COLOR as ColorSetting;
+    if (e.NO_COLOR && !e.KONO_COLOR) this.#config.ui.colorMode = "none";
     if (e.NOKEY_IDLE_MS) this.#config.router.idleMs = Number(e.NOKEY_IDLE_MS) || this.#config.router.idleMs;
     this.#config = coerceConfig(this.#config);
   }

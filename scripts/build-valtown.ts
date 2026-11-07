@@ -4,7 +4,7 @@
  *
  * Val Town vals are single files, so the core is inlined verbatim: the same
  * `handleGateway` that the local proxy runs is what gets deployed. Generated
- * output is committed (`deploy/valtown/nokey-gateway.ts`) because Val Town has
+ * output is committed (`deploy/valtown/kono-gateway.ts`) because Val Town has
  * no build step — `test/gateway.test.ts` fails if the two ever drift.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -14,30 +14,30 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..");
 export const CORE_PATH = join(repoRoot, "src", "server", "gateway.ts");
-export const VAL_PATH = join(repoRoot, "deploy", "valtown", "nokey-gateway.ts");
+export const VAL_PATH = join(repoRoot, "deploy", "valtown", "kono-gateway.ts");
 
 /** Environment variables the val reads on every request. */
 export const VAL_ENV_KEYS = [
   "ROUTER_API_KEY",
-  "NOKEY_BASE_URL",
-  "NOKEY_ALLOW_ORIGIN",
-  "NOKEY_ALLOW",
-  "NOKEY_ALLOW_ADMIN",
-  "NOKEY_ALLOW_ADMIN_SECRET",
-  "NOKEY_FORCE_KEY",
-  "NOKEY_REQUIRE_CLIENT_KEY",
-  "NOKEY_LANDING",
-  "NOKEY_GATEWAY_NAME",
+  "KONO_BASE_URL",
+  "KONO_ALLOW_ORIGIN",
+  "KONO_ALLOW",
+  "KONO_ALLOW_ADMIN",
+  "KONO_ALLOW_ADMIN_SECRET",
+  "KONO_FORCE_KEY",
+  "KONO_REQUIRE_CLIENT_KEY",
+  "KONO_LANDING",
+  "KONO_GATEWAY_NAME",
 ];
 
 const HEADER = `/**
- * nokey gateway — Val Town HTTP val (GENERATED, do not edit by hand).
+ * kono gateway — Val Town HTTP val (GENERATED, do not edit by hand).
  *
- * Source of truth: src/server/gateway.ts in the nokey-cli repo.
+ * Source of truth: src/server/gateway.ts in the kono-cli repo.
  * Rebuild with: npm run build:valtown
  *
  * Deploy: create an HTTP val, paste this file, save, then set the environment
- * variable ROUTER_API_KEY (and optionally NOKEY_ALLOW_ORIGIN, NOKEY_BASE_URL).
+ * variable ROUTER_API_KEY (and optionally KONO_ALLOW_ORIGIN, KONO_BASE_URL).
  *
  * Everything below the marker is the shared gateway core, inlined so the val
  * stays a single file with no imports.
@@ -59,7 +59,7 @@ function readEnv(key: string): string | undefined {
 }
 
 /** Val Town calls this for every request to the val's URL. */
-export default async function nokeyGateway(request: Request): Promise<Response> {
+export default async function konoGateway(request: Request): Promise<Response> {
   const env: GatewayEnv = {};
   for (const key of VAL_ENV_KEYS) {
     const value = readEnv(key);
