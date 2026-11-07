@@ -1,7 +1,7 @@
 {
   "name": "nokey-cli",
   "version": "1.0.0",
-  "description": "Stateful, color-coded terminal chat for nokey-router — streaming, syntax-highlighted, with a memory engine and session DAG.",
+  "description": "Stateful, color-coded terminal chat for nokey-router \u2014 streaming, syntax-highlighted, with a memory engine and session DAG.",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -25,7 +25,9 @@
     "test": "node --no-warnings --experimental-strip-types --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
-    "mock": "node --no-warnings --experimental-strip-types test/mock-router.ts"
+    "mock": "node --no-warnings --experimental-strip-types test/mock-router.ts",
+    "build:valtown": "node --no-warnings --experimental-strip-types scripts/build-valtown.ts",
+    "check:gateway": "node --no-warnings --experimental-strip-types scripts/check-gateway.ts"
   },
   "keywords": [
     "ai",

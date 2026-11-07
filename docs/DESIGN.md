@@ -129,9 +129,27 @@ routing` and `: keepalive` comments, the `nokey` telemetry chunk and `[DONE]`.
   keystroke in a 200-message session re-renders one message, not two hundred.
 - `src/ui/screen.ts` — alternate screen with row-diffed painting.
 
+## Gateway, two runtimes
+
+`src/server/gateway.ts` is a pure `Request → Response` handler with no imports:
+path allowlists, CORS, credential policy, the payload cap and streaming
+passthrough all live there.
+
+- `src/server/proxy.ts` adapts it to `node:http` via `Readable.toWeb` and a
+  response pump, and widens the allowlist to the full `/v1/*` surface (loopback
+  only, admin secret supplied from local config).
+- `scripts/build-valtown.ts` inlines the same file into `deploy/valtown/nokey-gateway.ts`
+  plus an entrypoint that reads env from Deno or Node. The public deployment
+  keeps admin routes closed and never injects `x-admin-secret`.
+
+Because Val Town has no build step, the generated val is committed and a test
+compares it byte-for-byte with `renderVal()`. That test is the only thing
+standing between "fixed locally" and "still broken in production", so it runs
+with the rest of the suite.
+
 ## Test strategy
 
-61 tests across five files, all offline:
+80 tests across six files, all offline:
 
 | file | covers |
 |:--|:--|
@@ -139,6 +157,7 @@ routing` and `: keepalive` comments, the `nokey` telemetry chunk and `[DONE]`.
 | `test/store.test.ts` | session DAG, torn-log recovery, export/import, memory scoring/pruning, extraction, config |
 | `test/context.test.ts` | system composition, project docs, summary resets, compaction planning, eviction |
 | `test/integration.test.ts` | SSE, retries, 401, abort, engine persistence, tool calls, compaction, proxy, CLI |
+| `test/gateway.test.ts` | CORS, key injection modes, admin lockdown, payload cap, 502 mapping, incremental streaming, the Node adapter, and the generated Val Town val |
 | `test/mock-router.ts` | the stand-in router that makes the above possible |
 
 The interactive UI is verified by replaying its escape stream through a small VT

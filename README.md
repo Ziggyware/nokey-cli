@@ -92,6 +92,27 @@ nokey doctor                       # connectivity, auth, storage
 nokey proxy --port 8787            # CORS gateway for browsers and other tools
 ```
 
+### Host the gateway
+
+The TUI needs a terminal, but the gateway does not. The same handler that backs
+`nokey proxy` ships as a single-file Val Town val, so browsers and other machines
+get a public origin with streaming and server-side key handling:
+
+```bash
+npm run build:valtown                       # regenerate deploy/valtown/nokey-gateway.ts
+# paste that file into a new HTTP val, set ROUTER_API_KEY, save
+npm run check:gateway -- https://<handle>-nokey-gateway.web.val.run
+
+export NOKEY_BASE_URL=https://<handle>-nokey-gateway.web.val.run
+nokey
+```
+
+The val proxies chat, models, tools, images and community rooms; admin routes
+stay closed, admin secrets are never injected, and `NOKEY_REQUIRE_CLIENT_KEY=1`
+stops a public URL from spending your quota. See
+[`docs/DEPLOY-VALTOWN.md`](docs/DEPLOY-VALTOWN.md) for the full walkthrough,
+security matrix and troubleshooting.
+
 ### Keys inside the TUI
 
 | keys | action |
@@ -218,6 +239,7 @@ Environment overrides: `ROUTER_API_KEY`, `NOKEY_API_KEY`, `NOKEY_ADMIN_SECRET`, 
 - **A real tokenizer for code.** `src/render/highlight.ts` is a stateful scanner with 28 language definitions — block comments, template literals, Python triple-quoted strings and heredocs keep state across lines.
 - **Theme tokens everywhere.** No hex literal appears in a renderer; swapping `ui.theme` re-colours the entire UI, including the syntax palette, at runtime.
 - **One turn pipeline.** The TUI and `-p` mode share `TurnEngine`, so memory, compaction, telemetry and persistence behave identically in both.
+- **One gateway contract, two runtimes.** `handleGateway(Request) → Response` is runtime-agnostic; `node:http` and Val Town are thin adapters over it, so what you test locally is what deploys. Val Town vals are single files, so `npm run build:valtown` inlines the core and a test fails if the deployed copy drifts from the source.
 - **Zero runtime dependencies.** Node ≥ 22.6 runs the TypeScript directly; `npm run build` exists for older runtimes.
 
 See [`docs/DESIGN.md`](docs/DESIGN.md) for the request lifecycle and the scoring formulas.
@@ -225,10 +247,11 @@ See [`docs/DESIGN.md`](docs/DESIGN.md) for the request lifecycle and the scoring
 ## Development
 
 ```bash
-npm test           # 61 tests: cells, highlight, markdown, memory, sessions, context, streaming, retries, CLI
+npm test           # 80 tests: cells, highlight, markdown, memory, sessions, context, streaming, retries, gateway, CLI
 npm run typecheck  # strict tsc, erasable-syntax-only (runs without a build)
 npm run mock       # a local stand-in router on :8799
 NOKEY_BASE_URL=http://127.0.0.1:8799 NOKEY_API_KEY=test npm start
+npm run build:valtown && npm run check:gateway -- http://127.0.0.1:8787
 ```
 
 The mock implements SSE frames, routing heartbeats, `nokey` telemetry, degraded mode, 429-then-succeed and the tool plane, so the whole stack is testable offline.
